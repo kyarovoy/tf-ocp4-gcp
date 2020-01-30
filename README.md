@@ -18,25 +18,36 @@ gcloud init
 ssh-keygen -t rsa -b 4096 -N '' -f ~/.ssh/openshift4_ssh_key
 ```
 
-2.  Create bastion instance
+2.  Create bastion/VPN instance
 
 ```
 gcloud compute addresses create external-bastion-ip --region us-east1
 gcloud compute instances create bastion --machine-type=f1-micro --network=default --address external-bastion-ip --maintenance-policy=MIGRATE --no-service-account --no-scopes --tags=bastion --image-family=centos-8 --image-project=centos-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=bastion
 ```
 
-3. Install OpenVPN server and client
+3. Install and tune OpenVPN server
 
 ```
-ssh -i ~/.ssh/openshift4_ssh_key <bastion_external_ip>
+EXTERNAL_IP=$(gcloud compute addresses describe external-bastion-ip --region us-east1 | head -n 1 | awk '{ print $2 }')
+ssh -i ~/.ssh/openshift4_ssh_key $EXTERNAL_IP
 > curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
 > chmod +x openvpn-install.sh
 > AUTO_INSTALL=y ./openvpn-install.sh
-> exit
-scp -i ~/.ssh/openshift4_ssh_key <bastion_external_ip>:client.ovpn .
-brew cask install tunnelblick
-open client.ovpn
+> DNS_SEARCH=$(cat /etc/resolv.conf | grep search | awk '{ print $2" "$3 }')
+> echo push \"dhcp-option DOMAIN $DNS_SEARCH\">>/etc/openvpn/server.conf
+> echo push \"route 169.254.169.254 255.255.255.255\">>/etc/openvpn/server.conf
+> sed -i '/redirect-gateway/d' /etc/openvpn/server.conf
+> systemctl restart openvpn-server@server
+```
 
+4. Install OpenVPN client
+
+```
+brew cask install tunnelblick
+scp -i ~/.ssh/openshift4_ssh_key $EXTERNAL_IP:client.ovpn .
+echo pull>>client.ovpn
+open client.ovpn
+```
 
 4.  [Enable Service APIs](https://github.com/openshift/installer/blob/master/docs/user/gcp/apis.md)
 5.  [Configure DNS](https://github.com/openshift/installer/blob/master/docs/user/gcp/dns.md) 
