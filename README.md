@@ -33,7 +33,7 @@ ssh -i ~/.ssh/openshift4_ssh_key $EXTERNAL_IP
 > curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
 > chmod +x openvpn-install.sh
 > AUTO_INSTALL=y ./openvpn-install.sh
-> DNS_SEARCH=$(cat /etc/resolv.conf | grep search | awk '{ print $2" "$3 }')
+> DNS_SEARCH=$(cat /etc/resolv.conf | grep search | awk '{ print $2 }')
 > echo push \"dhcp-option DOMAIN $DNS_SEARCH\">>/etc/openvpn/server.conf
 > echo push \"route 169.254.169.254 255.255.255.255\">>/etc/openvpn/server.conf
 > sed -i '/redirect-gateway/d' /etc/openvpn/server.conf
