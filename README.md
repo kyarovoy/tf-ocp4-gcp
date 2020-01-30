@@ -22,7 +22,7 @@ ssh-keygen -t rsa -b 4096 -N '' -f ~/.ssh/openshift4_ssh_key
 
 ```
 gcloud compute addresses create external-bastion-ip --region us-east1
-gcloud compute instances create bastion --machine-type=f1-micro --network=default --address external-bastion-ip --maintenance-policy=MIGRATE --no-service-account --no-scopes --tags=bastion --image-family=centos-8 --image-project=centos-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=bastion
+gcloud compute instances create bastion --machine-type=f1-micro --network=default --address external-bastion-ip --maintenance-policy=MIGRATE --no-service-account --no-scopes --tags=bastion --image-family=centos-8 --image-project=centos-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=bastion --can-ip-forward
 ```
 
 3. Install and configure OpenVPN server
@@ -32,6 +32,7 @@ EXTERNAL_IP=$(gcloud compute addresses describe external-bastion-ip --region us-
 ssh -i ~/.ssh/openshift4_ssh_key $EXTERNAL_IP
 > curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
 > chmod +x openvpn-install.sh
+> sudo bash
 > AUTO_INSTALL=y ./openvpn-install.sh
 > DNS_SEARCH=$(cat /etc/resolv.conf | grep search | awk '{ print $2 }')
 > echo push \"dhcp-option DOMAIN $DNS_SEARCH\">>/etc/openvpn/server.conf
@@ -52,12 +53,33 @@ open client.ovpn
 ping bastion
 ```
 
-5. Create Custom VPC network and subnets for OpenShift
+5. Create Custom VPC network and subnets for OpenShift and establish peering
 
 ```
+# Create VPC for OpenShift installation
 gcloud compute networks create vpc-ocp --subnet-mode=custom --bgp-routing-mode=regional
 gcloud compute networks subnets create ocp4-master-subnet --network=vpc-ocp --range=10.0.0.0/19 --region=us-east1
 gcloud compute networks subnets create ocp4-worker-subnet --network=vpc-ocp --range=10.0.32.0/19 --region=us-east1
+# Establish peering between OpenShift VPC and default VPC
+gcloud beta compute networks peerings create default-to-vpc-ocp --network=default --peer-network vpc-ocp --import-custom-routes --export-custom-routes
+gcloud beta compute networks peerings create vpc-ocp-to-default --network=vpc-ocp --peer-network default --import-custom-routes --export-custom-routes
+# Allow connections in vpc-ocp network from default subnet IP address range in us-east1
+gcloud compute firewall-rules create allow-default-to-ocp --network vpc-ocp --action allow --source-ranges 10.142.0.0/20
+```
+
+6. Download openshift v4 client files
+
+```
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.0/openshift-install-mac-4.3.0.tar.gz
+wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.0/openshift-client-mac-4.3.0.tar.gz
+tar zxvf openshift-install-mac-4.3.0.tar.gz
+tar zxvf openshift-client-mac-4.3.0.tar.gz
+```
+
+7. Create DNS
+
+```
+gcloud dns managed-zones create ocp-dns --dns-name="ocp.local" --description="OCP Private zone" --visibility=private --networks=ocp-vpc
 ```
 
 6. Prepare install-config.yaml
