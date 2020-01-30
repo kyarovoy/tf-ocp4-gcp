@@ -25,7 +25,7 @@ gcloud compute addresses create external-bastion-ip --region us-east1
 gcloud compute instances create bastion --machine-type=f1-micro --network=default --address external-bastion-ip --maintenance-policy=MIGRATE --no-service-account --no-scopes --tags=bastion --image-family=centos-8 --image-project=centos-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=bastion
 ```
 
-3. Install and tune OpenVPN server
+3. Install and configure OpenVPN server
 
 ```
 EXTERNAL_IP=$(gcloud compute addresses describe external-bastion-ip --region us-east1 | head -n 1 | awk '{ print $2 }')
@@ -38,15 +38,32 @@ ssh -i ~/.ssh/openshift4_ssh_key $EXTERNAL_IP
 > echo push \"route 169.254.169.254 255.255.255.255\">>/etc/openvpn/server.conf
 > sed -i '/redirect-gateway/d' /etc/openvpn/server.conf
 > systemctl restart openvpn-server@server
+gcloud compute firewall-rules create external-vpn-allow --action allow --target-tags bastion --source-ranges 0.0.0.0/0 --rules udp:1194
 ```
 
-4. Install OpenVPN client
+4. Install OpenVPN client and connect to a VPN
 
 ```
 brew cask install tunnelblick
 scp -i ~/.ssh/openshift4_ssh_key $EXTERNAL_IP:client.ovpn .
 echo pull>>client.ovpn
 open client.ovpn
+...
+ping bastion
+```
+
+5. Create Custom VPC network and subnets for OpenShift
+
+```
+gcloud compute networks create vpc-ocp --subnet-mode=custom --bgp-routing-mode=regional
+gcloud compute networks subnets create ocp4-master-subnet --network=vpc-ocp --range=10.0.0.0/19 --region=us-east1
+gcloud compute networks subnets create ocp4-worker-subnet --network=vpc-ocp --range=10.0.32.0/19 --region=us-east1
+```
+
+6. Prepare install-config.yaml
+
+```
+
 ```
 
 4.  [Enable Service APIs](https://github.com/openshift/installer/blob/master/docs/user/gcp/apis.md)
