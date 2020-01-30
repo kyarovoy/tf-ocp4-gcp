@@ -1,13 +1,46 @@
-# OpenShift 4 UPI on Google Cloud
+# OpenShift 4.3 on Google Cloud
 
-This [terraform](terraform.io) implementation will deploy OpenShift 4.x into a GCP VPC, with two subnets for controlplane and worker nodes.  Traffic to the master nodes is handled via a pair of loadbalancers, one for internal traffic and another for external API traffic.  Application loadbalancing is handled by a third loadbalancer that talks to the router pods on the infra or worker nodes.  Worker, Infra and Master nodes are deployed across 3 Availability Zones
+This [terraform](terraform.io) implementation will deploy OpenShift 4.3 into a GCP VPC, with two subnets for controlplane and worker nodes.  Traffic to the master nodes is handled via a pair of loadbalancers, one for internal traffic and another for external API traffic.  Application loadbalancing is handled by a third loadbalancer that talks to the router pods on the infra or worker nodes.  Worker, Infra and Master nodes are deployed across 3 Availability Zones
 
 
 # Prerequisites
 
-1.  [Enable Service APIs](https://github.com/openshift/installer/blob/master/docs/user/gcp/apis.md)
-2.  [Configure DNS](https://github.com/openshift/installer/blob/master/docs/user/gcp/dns.md) 
-3.  [Create GCP Service Account](https://github.com/openshift/installer/blob/master/docs/user/gcp/iam.md) with proper IAM roles 
+1.  Install and init Google Cloud SDK
+
+```
+brew cask install google-cloud-sdk
+gcloud init
+```
+
+2.  Generate ssh key
+
+```
+ssh-keygen -t rsa -b 4096 -N '' -f ~/.ssh/openshift4_ssh_key
+```
+
+2.  Create bastion instance
+
+```
+gcloud compute addresses create external-bastion-ip --region us-east1
+gcloud compute instances create bastion --machine-type=f1-micro --network=default --address external-bastion-ip --maintenance-policy=MIGRATE --no-service-account --no-scopes --tags=bastion --image-family=centos-8 --image-project=centos-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=bastion
+```
+
+3. Install OpenVPN server and client
+
+```
+ssh -i ~/.ssh/openshift4_ssh_key <bastion_external_ip>
+> curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
+> chmod +x openvpn-install.sh
+> AUTO_INSTALL=y ./openvpn-install.sh
+> exit
+scp -i ~/.ssh/openshift4_ssh_key <bastion_external_ip>:client.ovpn .
+brew cask install tunnelblick
+open client.ovpn
+
+
+4.  [Enable Service APIs](https://github.com/openshift/installer/blob/master/docs/user/gcp/apis.md)
+5.  [Configure DNS](https://github.com/openshift/installer/blob/master/docs/user/gcp/dns.md) 
+6.  [Create GCP Service Account](https://github.com/openshift/installer/blob/master/docs/user/gcp/iam.md) with proper IAM roles 
 
 
 # Minimal TFVARS file
