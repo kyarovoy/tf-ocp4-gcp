@@ -54,8 +54,8 @@ resource "null_resource" "generate_manifests" {
   provisioner "local-exec" {
     command = <<EOF
 ${local.installer_workspace}/openshift-install --dir=${local.installer_workspace} create manifests
-rm ${local.installer_workspace}/openshift/99_openshift-cluster-api_worker-machineset-*
-rm ${local.installer_workspace}/openshift/99_openshift-cluster-api_master-machines-*
+rm -f ${local.installer_workspace}/openshift/99_openshift-cluster-api_worker-machineset-*
+rm -f ${local.installer_workspace}/openshift/99_openshift-cluster-api_master-machines-*
 EOF
   }
 }
