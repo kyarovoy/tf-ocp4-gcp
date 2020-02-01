@@ -39,6 +39,9 @@ ssh -i ~/.ssh/openshift4_ssh_key $EXTERNAL_IP
 > echo push \"route 169.254.169.254 255.255.255.255\">>/etc/openvpn/server.conf
 > sed -i '/redirect-gateway/d' /etc/openvpn/server.conf
 > systemctl restart openvpn-server@server
+> iptables -t nat -A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE
+> chkconfig iptables on
+> service iptables save
 gcloud compute firewall-rules create external-vpn-allow --action allow --target-tags bastion --source-ranges 0.0.0.0/0 --rules udp:1194
 ```
 
@@ -60,9 +63,15 @@ ping bastion
 gcloud compute networks create vpc-ocp --subnet-mode=custom --bgp-routing-mode=regional
 gcloud compute networks subnets create ocp4-master-subnet --network=vpc-ocp --range=10.0.0.0/19 --region=us-east1
 gcloud compute networks subnets create ocp4-worker-subnet --network=vpc-ocp --range=10.0.32.0/19 --region=us-east1
+
+# Allow VPC external access to the Internet
+gcloud compute routers create ocp-router --network=vpc-ocp --advertisement-mode=CUSTOM --region=us-east1 
+gcloud compute routers nats create ocp-to-internet --router=ocp-router --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --region=us-east1
+
 # Establish peering between OpenShift VPC and default VPC
 gcloud beta compute networks peerings create default-to-vpc-ocp --network=default --peer-network vpc-ocp --import-custom-routes --export-custom-routes
 gcloud beta compute networks peerings create vpc-ocp-to-default --network=vpc-ocp --peer-network default --import-custom-routes --export-custom-routes
+
 # Allow connections in vpc-ocp network from default subnet IP address range in us-east1
 gcloud compute firewall-rules create allow-default-to-ocp --network vpc-ocp --action allow --source-ranges 10.142.0.0/20
 ```
