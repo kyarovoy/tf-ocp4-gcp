@@ -9,7 +9,8 @@ As a part of this deployment we are configuring Bastion host with OpenVPN to acc
 0. Enable Service APIs and Create GCP Service account
 
 * [Enable Service APIs](https://github.com/openshift/installer/blob/master/docs/user/gcp/apis.md)
-* [Create GCP Service Account](https://github.com/openshift/installer/blob/master/docs/user/gcp/iam.md) with proper IAM roles 
+* [Create GCP Service Account](https://github.com/openshift/installer/blob/master/docs/user/gcp/iam.md) with proper IAM roles
+* Download pull secret for [cloud.rehat.com](https://cloud.redhat.com/openshift/install/gcp/installer-provisioned)
 
 1.  Install and init Google Cloud SDK
 
