@@ -6,20 +6,33 @@ As a part of this deployment we are configuring Bastion host with OpenVPN to acc
 
 # Prerequisites
 
-0. Enable Service APIs and Create GCP Service account
-
-* [Enable Service APIs](https://github.com/openshift/installer/blob/master/docs/user/gcp/apis.md)
-* [Create GCP Service Account](https://github.com/openshift/installer/blob/master/docs/user/gcp/iam.md) with proper IAM roles
-* Download pull secret for [cloud.rehat.com](https://cloud.redhat.com/openshift/install/gcp/installer-provisioned)
-
-1.  Install and init Google Cloud SDK
+1.  Install and init Google Cloud SDK with Owner account
 
 ```
 brew cask install google-cloud-sdk
 gcloud init
 ```
 
-2.  Generate ssh key and add it to your ssh agent
+2. Enable Service APIs
+
+```
+for service in compute cloudapis cloudresourcemanager dns iam iamcredentials servicemanagement serviceusage storage-api storage-component do gcloud services enable $service; done
+```
+
+3. Create GCP Service Account for OpenShift provisioning
+
+```
+PROJECT=prototypesandacceleration
+gcloud iam service-accounts create ocp-provisioner --description "OCP Provisioner" --display-name "OCP Provisioner"
+for role in "compute.admin dns.admin iam.securityAdmin iam.serviceAccountAdmin iam.serviceAccountUser storage.admin iam.serviceAccountKeyAdmin" do
+  gcloud projects add-iam-policy-binding $PROJECT \
+  --member serviceAccount:ocp-provisioner@$PROJECT.iam.gserviceaccount.com --role roles/comput
+done
+  
+```
+4. Download pull secret for [cloud.rehat.com](https://cloud.redhat.com/openshift/install/gcp/installer-provisioned)
+
+5.  Generate ssh key and add it to your ssh agent
 
 ```
 ssh-keygen -t rsa -b 4096 -N '' -f ~/.ssh/openshift4_ssh_key
@@ -27,14 +40,14 @@ eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/openshift4_ssh_key
 ```
 
-2.  Create bastion/VPN instance
+6.  Create bastion/VPN instance
 
 ```
 gcloud compute addresses create external-bastion-ip --region us-east1
 gcloud compute instances create bastion --machine-type=f1-micro --network=default --address external-bastion-ip --maintenance-policy=MIGRATE --no-service-account --no-scopes --tags=bastion --image-family=centos-8 --image-project=centos-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=bastion --can-ip-forward
 ```
 
-3. Install and configure OpenVPN server
+7. Install and configure OpenVPN server
 
 ```
 EXTERNAL_IP=$(gcloud compute addresses describe external-bastion-ip --region us-east1 | head -n 1 | awk '{ print $2 }')
@@ -57,7 +70,7 @@ ssh $EXTERNAL_IP
 gcloud compute firewall-rules create external-vpn-allow --action allow --target-tags bastion --source-ranges 0.0.0.0/0 --rules udp:1194
 ```
 
-4. Install OpenVPN client and connect to a VPN
+8. Install OpenVPN client and connect to a VPN
 
 ```
 brew cask install tunnelblick
@@ -68,7 +81,7 @@ open client.ovpn
 ping bastion
 ```
 
-5. Create Custom VPC network and subnets for OpenShift with Internet access, establish peering with default network
+9. Create Custom VPC network and subnets for OpenShift with Internet access, establish peering with default network
 
 ```
 # Create VPC for OpenShift installation
@@ -88,7 +101,7 @@ gcloud beta compute networks peerings create vpc-ocp-to-default --network=vpc-oc
 gcloud compute firewall-rules create allow-default-to-ocp --network vpc-ocp --action allow --source-ranges 10.142.0.0/20
 ```
 
-6. Download openshift v4 client files
+10. Download openshift v4 client files
 
 ```
 # wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.0/openshift-install-mac-4.3.0.tar.gz
@@ -97,7 +110,7 @@ gcloud compute firewall-rules create allow-default-to-ocp --network vpc-ocp --ac
 # tar zxvf openshift-client-mac-4.3.0.tar.gz
 ```
 
-6. Prepare install-config.yaml
+11. Prepare install-config.yaml
 
 ```
 apiVersion: v1
@@ -147,7 +160,7 @@ pullSecret: '<your pull secret>'
 sshKey: <your ssh key>
 ```
 
-7. Deploy cluster
+12. Deploy cluster
 
 ```
 # ./openshift-install create cluster --dir=. --log-level=info
@@ -165,7 +178,7 @@ INFO Access the OpenShift web-console here: https://console-openshift-console.ap
 INFO Login to the console with user: kubeadmin, password: <pass>
 ```
 
-8. Ensure all nodes are ready
+13. Ensure all nodes are ready
 
 ```
 # export KUBECONFIG=/Users/kiarov/ocp/auth/kubeconfig
@@ -179,4 +192,4 @@ ocp4-scbkq-w-c-74tsl.c.prototypesandacceleration.internal   Ready     worker    
 ocp4-scbkq-w-d-j8wwv.c.prototypesandacceleration.internal   Ready     worker    10m       v1.16.2
 ```
 
-9. Log in to the cluster console at [https://console-openshift-console.apps.ocp4.ocp.local](https://console-openshift-console.apps.ocp4.ocp.local)
+14. Log in to the cluster console at [https://console-openshift-console.apps.ocp4.ocp.local](https://console-openshift-console.apps.ocp4.ocp.local)
