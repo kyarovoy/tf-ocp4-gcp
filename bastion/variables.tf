@@ -16,7 +16,7 @@ variable "vpc" {
 }
 
 variable "instance_disk_size" {
-  default = "10"
+  default = "20"
 }
 
 variable "ssh_key" {

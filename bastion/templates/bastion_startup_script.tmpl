@@ -6,7 +6,7 @@ chmod +x openvpn-install.sh
 
 # Install OpenVPN
 
-sudo AUTO_INSTALL=y DNS=12 DNS1=10.8.0.1 ./openvpn-install.sh
+sudo AUTO_INSTALL=y DNS=13 DNS1=10.8.0.1 ./openvpn-install.sh
 
 # Configure OpenVPN to push routes to clients
 DNS_SEARCH=$(cat /etc/resolv.conf | grep search | awk '{ print $2 }')
