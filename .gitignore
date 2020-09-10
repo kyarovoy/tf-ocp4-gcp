@@ -1,11 +1,11 @@
 #  Local .terraform directories
 **/.terraform/*
 
-# .tfstate files
+# .tfstate templates
 *.tfstate
 *.tfstate.*
 
-# .tfvars files
+# .tfvars templates
 *.tfvars
 
 # Mac stuff
@@ -13,12 +13,14 @@
 
 # openshift pull-secret
 pull-secret
-credentials.json
+
+# Bastion files
+/files/*
 
 # local
 makefile
 **/artifacts/*
 
-# installer-files
+# installer-templates
 **/installer-files/*
 **/reference/*

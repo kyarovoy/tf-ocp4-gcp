@@ -1,23 +1,11 @@
-output "cluster_ip" {
-  value = google_compute_forwarding_rule.api_internal.ip_address
-}
-
-output "cluster_public_ip" {
-  value = var.public_endpoints ? google_compute_forwarding_rule.api[0].ip_address : null
-}
-
-output "network" {
-  value = local.cluster_network
-}
-
-output "worker_subnet" {
-  value = google_compute_subnetwork.worker_subnet.self_link
-}
-
-output "master_subnet" {
-  value = local.master_subnet
-}
-
-output "zones" {
-  value = local.zones
+output "vpc" {
+  value = google_compute_network.gcp_vpc.name
+  depends_on = [
+    google_compute_network.gcp_vpc,
+    google_compute_subnetwork.ocp4_management_subnet,
+    google_compute_subnetwork.ocp4_master_subnet,
+    google_compute_subnetwork.ocp4_worker_subnet,
+    google_compute_router.ocp-router,
+    google_compute_router_nat.ocp-to-internet
+  ]
 }

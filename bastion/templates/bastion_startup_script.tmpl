@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Download OpenVPN fast install script
+curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
+chmod +x openvpn-install.sh
+
+# Install OpenVPN
+
+sudo AUTO_INSTALL=y DNS=12 DNS1=10.8.0.1 ./openvpn-install.sh
+
+# Configure OpenVPN to push routes to clients
+DNS_SEARCH=$(cat /etc/resolv.conf | grep search | awk '{ print $2 }')
+IP=$(curl -H "Metadata-Flavor: Google" http://metadata/computeMetadata/v1/instance/network-interfaces/0/ip)
+NETMASK=$(curl -H "Metadata-Flavor: Google" http://metadata/computeMetadata/v1/instance/network-interfaces/0/subnetmask)
+OPENVPN_CONFIG=/etc/openvpn/server.conf
+echo push \"dhcp-option DOMAIN-SEARCH $DNS_SEARCH\" | sudo tee -a $OPENVPN_CONFIG
+echo push \"dhcp-option DOMAIN-SEARCH google.internal\" | sudo tee -a $OPENVPN_CONFIG
+%{ for route in routes ~}
+echo push \"route ${ cidrhost(route,0) } ${ cidrnetmask(route) }\" | sudo tee -a $OPENVPN_CONFIG
+%{ endfor ~}
+echo push \"route $IP $NETMASK\" | sudo tee -a $OPENVPN_CONFIG
+sudo sed -i '/redirect-gateway/d' $OPENVPN_CONFIG
+sudo systemctl restart openvpn-server@server
+
+# Configure NAT for client VPN addresses
+sudo iptables -t nat -A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE
+sudo chkconfig iptables on
+sudo service iptables save
+
+# Enable DNSMASQ
+sudo yum -y install dnsmasq
+sudo systemctl enable dnsmasq.service --now

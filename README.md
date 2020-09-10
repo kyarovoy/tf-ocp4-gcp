@@ -55,10 +55,10 @@ ssh $EXTERNAL_IP
 > curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
 > chmod +x openvpn-install.sh
 > sudo bash
-> AUTO_INSTALL=y ./openvpn-install.sh
+> AUTO_INSTALL=y DNS=12 DNS1=10.8.0.1 ./openvpn-install.sh
 > DNS_SEARCH=$(cat /etc/resolv.conf | grep search | awk '{ print $2 }')
-> echo push \"dhcp-option DOMAIN $DNS_SEARCH\">>/etc/openvpn/server.conf
-> echo push \"route 169.254.169.254 255.255.255.255\">>/etc/openvpn/server.conf
+> echo push \"dhcp-option DOMAIN-SEARCH $DNS_SEARCH\">>/etc/openvpn/server.conf
+> echo push \"dhcp-option DOMAIN-SEARCH google.internal\">>/etc/openvpn/server.conf
 > echo push \"route 10.142.0.0 255.255.254.0\">>/etc/openvpn/server.conf
 > echo push \"route 10.0.0.0 255.255.224.0\">>/etc/openvpn/server.conf
 > echo push \"route 10.0.32.0 255.255.224.0\">>/etc/openvpn/server.conf
@@ -67,6 +67,9 @@ ssh $EXTERNAL_IP
 > iptables -t nat -A POSTROUTING -s 10.8.0.0/8 -o eth0 -j MASQUERADE
 > chkconfig iptables on
 > service iptables save
+> sudo yum -y install dnsmasq
+> sudo systemctl enable dnsmasq.service --now
+
 gcloud compute firewall-rules create external-vpn-allow --action allow --target-tags bastion --source-ranges 0.0.0.0/0 --rules udp:1194
 ```
 

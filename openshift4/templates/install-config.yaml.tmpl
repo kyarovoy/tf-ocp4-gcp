@@ -1,0 +1,44 @@
+apiVersion: v1
+baseDomain: ${base_domain}
+compute:
+- hyperthreading: Enabled
+  name: worker
+  platform:
+    gcp:
+      rootVolume:
+        iops: 4000
+        size: ${worker_disk_size}
+        type: io1
+      type: ${worker_node_type}
+  replicas: 3
+controlPlane:
+  hyperthreading: Enabled
+  name: master
+  platform:
+    gcp:
+      rootVolume:
+        iops: 4000
+        size: ${master_disk_size}
+        type: io1
+      type: ${master_node_type}
+  replicas: 3
+metadata:
+  name: ${cluster_name}
+networking:
+  clusterNetwork:
+  - cidr: ${cluster_network}
+    hostPrefix: 23
+  machineCIDR: ${machine_network}
+  networkType: OpenShiftSDN
+  serviceNetwork:
+  - ${service_network}
+platform:
+  gcp:
+    projectID: ${gcp_project_id}
+    region: ${gcp_region}
+    network: ${gcp_vpc}
+    controlPlaneSubnet: ${gcp_master_subnet}
+    computeSubnet: ${gcp_worker_subnet}
+publish: Internal
+pullSecret: '${pull_secret}'
+sshKey: ${public_ssh_key}
